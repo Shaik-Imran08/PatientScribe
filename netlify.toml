@@ -7,6 +7,21 @@
   NODE_VERSION = "20"
 
 [[redirects]]
+  from   = "/api/health"
+  to     = "/.netlify/functions/health"
+  status = 200
+
+[[redirects]]
+  from   = "/api/generate-checklist"
+  to     = "/.netlify/functions/generate-checklist"
+  status = 200
+
+[[redirects]]
+  from   = "/api/generate-summary"
+  to     = "/.netlify/functions/generate-summary"
+  status = 200
+
+[[redirects]]
   from   = "/*"
   to     = "/index.html"
   status = 200

@@ -1,6 +1,27 @@
 import { useState } from 'react';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+async function postJson(path, body, fallbackMessage) {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      typeof data?.detail === "string"
+        ? data.detail
+        : `${fallbackMessage} (server returned ${response.status}).`,
+    );
+  }
+
+  if (!data || typeof data !== "object") {
+    throw new Error("The server returned an invalid response. Check the deployed API setup.");
+  }
+
+  return data;
+}
 
 export default function App() {
   const [step, setStep] = useState(1);
@@ -20,15 +41,13 @@ export default function App() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_BASE}/api/generate-checklist`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_text: initialText.trim() })
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Unable to generate a symptom checklist.");
+      const data = await postJson(
+        "/api/generate-checklist",
+        { user_text: initialText.trim() },
+        "Unable to generate a symptom checklist",
+      );
+      if (!Array.isArray(data.symptoms)) {
+        throw new Error("The server returned an invalid symptom checklist.");
       }
 
       setChecklist(data.symptoms);
@@ -53,18 +72,16 @@ export default function App() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_BASE}/api/generate-summary`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+      const data = await postJson(
+        "/api/generate-summary",
+        {
           selected_symptoms: selectedSymptoms,
-          additional_notes: initialText 
-        })
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Unable to generate the doctor summary.");
+          additional_notes: initialText,
+        },
+        "Unable to generate the doctor summary",
+      );
+      if (typeof data.summary !== "string") {
+        throw new Error("The server returned an invalid doctor summary.");
       }
 
       setFinalSummary(data.summary);
